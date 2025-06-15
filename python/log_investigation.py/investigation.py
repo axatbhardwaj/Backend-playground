@@ -7,6 +7,9 @@ import math
 import sys
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from rich.console import Console
+from rich.table import Table
+from rich.align import Align
 
 load_dotenv()
 start_time = time.time()
@@ -16,6 +19,7 @@ RPC_URLS = [
 ]
 CONTRACT_ADDRESS = "0x82A9c823332518c32a0c0eDC050Ef00934Cf04D4"
 # ADDRESS_TO_INVESTIGATE = "0x39FCE6a33596b7319d7941F3F90d256574bcc954"
+DEFAULT_MAX_RETRIES = 3  # Max retries for fetching a single chunk
 
 # Map event names to their respective address and amount arguments in the ABI
 EVENT_CONFIGS = {
@@ -97,20 +101,59 @@ def display_progress(
 
 
 def fetch_single_chunk(
-    rpc_url, contract_address, abi, event_name, from_block, to_block
+    rpc_url,
+    contract_address,
+    abi,
+    event_name,
+    from_block,
+    to_block,
+    max_retries=DEFAULT_MAX_RETRIES,
 ):
-    try:
-        w3_instance = Web3(Web3.HTTPProvider(rpc_url))
-        contract_instance = w3_instance.eth.contract(
-            address=Web3.to_checksum_address(contract_address), abi=abi
-        )
-        event_contract = getattr(contract_instance.events, event_name)()
-        return event_contract.get_logs(from_block=from_block, to_block=to_block)
-    except Exception as e:
-        print(
-            f"Error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {e}"
-        )
-        return []
+    retries = 0
+    while retries <= max_retries:
+        try:
+            w3_instance = Web3(Web3.HTTPProvider(rpc_url))
+            contract_instance = w3_instance.eth.contract(
+                address=Web3.to_checksum_address(contract_address), abi=abi
+            )
+            event_contract = getattr(contract_instance.events, event_name)()
+
+            # The get_logs call will make its own HTTP request. The explicit requests.get call was incorrect.
+            logs_chunk = event_contract.get_logs(
+                from_block=from_block, to_block=to_block
+            )
+            return logs_chunk
+        except requests.exceptions.HTTPError as http_err:
+            if http_err.response.status_code == 429:  # Too Many Requests
+                retries += 1
+                print(
+                    f"⚠️ Rate Limit (429) for {event_name} from {rpc_url} (Blocks: {from_block}-{to_block}). Retrying in 10s (Attempt {retries}/{max_retries})."
+                )
+                time.sleep(10)  # Wait for 10 seconds before retrying
+            else:
+                print(
+                    f"\n❌ HTTP error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {http_err}"
+                )
+                return []
+        except requests.exceptions.ConnectionError as conn_err:
+            print(
+                f"\n❌ Connection error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {conn_err}"
+            )
+            return []
+        except requests.exceptions.Timeout as timeout_err:
+            print(
+                f"\n❌ Timeout error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {timeout_err}"
+            )
+            return []
+        except Exception as e:
+            print(
+                f"\n❌ Unexpected error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {e}"
+            )
+            return []
+    print(
+        f"\nAttempted to fetch chunk {from_block}-{to_block} {max_retries + 1} times and failed."
+    )
+    return []
 
 
 # Helper function to fetch logs in chunks
@@ -153,6 +196,7 @@ def fetch_event_logs_in_chunks(
                     event_name,
                     current_from_block,
                     current_to_block,
+                    DEFAULT_MAX_RETRIES,
                 )
             )
 
@@ -195,9 +239,9 @@ def analyze_event_logs(logs, address_to_find, event_arg, amount_arg):
     # Ensure the address to find is checksummed for accurate comparison
     checksum_address_to_find = Web3.to_checksum_address(address_to_find)
     for log in logs:
-        if log.args[event_arg] == checksum_address_to_find:
+        if getattr(log.args, event_arg) == checksum_address_to_find:
             count += 1
-            total_amount += log.args[amount_arg]
+            total_amount += getattr(log.args, amount_arg)
     return {"count": count, "total_amount": total_amount}
 
 
@@ -220,21 +264,6 @@ def fetch_eth_to_usd_rate():
         except requests.exceptions.RequestException as e:
             print(f"Fallback API also failed: {e}. Cannot fetch ETH to USD rate.")
             return None
-
-
-def print_event_analysis(
-    event_name, analysis_results, address_to_investigate, eth_to_usd_rate
-):
-    eth_amount = analysis_results["total_amount"] / 10**18  # Convert to ETH
-    if eth_to_usd_rate is not None:
-        usd_value = eth_amount * eth_to_usd_rate
-        print(
-            f"Address {address_to_investigate} has {event_name.lower()} {analysis_results['count']} times with a total amount of {eth_amount:.4f} ETH (${usd_value:.2f})."
-        )
-    else:
-        print(
-            f"Address {address_to_investigate} has {event_name.lower()} {analysis_results['count']} times with a total amount of {eth_amount:.4f} ETH (USD value not available)."
-        )
 
 
 # Define the total range and chunk size based on the problem statement
@@ -281,6 +310,10 @@ if not RPC_URLS:
 # --- Analysis ---
 eth_to_usd_rate = fetch_eth_to_usd_rate()
 
+all_analysis_results = {}
+
+console = Console()
+
 for event_key in selected_event_keys:
     if event_key in EVENT_CONFIGS:
         event_info = EVENT_CONFIGS[event_key]
@@ -288,10 +321,8 @@ for event_key in selected_event_keys:
         event_arg = event_info["event_arg"]
         amount_arg = event_info["amount_arg"]
 
-        print(f"\n--- Analyzing {event_name} Events ---")
-
-        # Fetch logs for the selected event type
-        current_event_logs = fetch_event_logs_in_chunks(
+        print(f"\n--- Fetching {event_name} Logs ---")
+        logs = fetch_event_logs_in_chunks(
             contract,
             event_name,
             start_block_overall,
@@ -301,18 +332,47 @@ for event_key in selected_event_keys:
         )
 
         for address in ADDRESSES_TO_INVESTIGATE:
-            analysis_results = analyze_event_logs(
-                current_event_logs, address, event_arg, amount_arg
-            )
-            # Special handling for Purged event address display
-            display_event_name = event_name
-            if event_name == "Purged":
-                display_event_name = "Purged (as memeToken)"
-            print_event_analysis(
-                display_event_name, analysis_results, address, eth_to_usd_rate
-            )
+            if address not in all_analysis_results:
+                all_analysis_results[address] = {}
+
+            analysis_results = analyze_event_logs(logs, address, event_arg, amount_arg)
+
+            eth_amount = analysis_results["total_amount"] / 10**18
+            usd_value = None
+            if eth_to_usd_rate is not None:
+                usd_value = eth_amount * eth_to_usd_rate
+
+            all_analysis_results[address][event_name] = {
+                "count": analysis_results["count"],
+                "total_amount_eth": eth_amount,
+                "total_amount_usd": usd_value,
+            }
     else:
         print(f"Warning: Invalid event selection: {event_key}. Skipping.")
 
 end_time = time.time()
 print(f"Time taken: {end_time - start_time:.2f} seconds")
+
+console.print("\n--- Analysis Results ---")
+
+for address, events_data in all_analysis_results.items():
+    table = Table(
+        title=f"Results for Address: {address}",
+        show_lines=True,
+        title_style="bold magenta",
+    )
+
+    table.add_column("Event Name", style="cyan", no_wrap=False)
+    table.add_column("Count", style="magenta", justify="center")
+    table.add_column("Total Amount ETH", style="green", justify="right")
+    table.add_column("Total Amount USD", style="yellow", justify="right")
+
+    for event_name, data in events_data.items():
+        eth_str = f'{data["total_amount_eth"]:.6f}'
+        usd_str = (
+            f'{data["total_amount_usd"]:.2f}'
+            if data["total_amount_usd"] is not None
+            else "N/A"
+        )
+        table.add_row(event_name, str(data["count"]), eth_str, usd_str)
+    console.print(Align.center(table))
