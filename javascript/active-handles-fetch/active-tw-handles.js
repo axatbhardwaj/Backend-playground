@@ -6,7 +6,7 @@ const MIRRORDB_BASE_URL = 'https://afmdb.autonolas.tech'; // e.g., 'http://local
 const HARDCODED_AGENT_TYPE_ID = 3; // Replace with your actual agent type ID
 const HARDCODED_INTERACTIONS_ATTR_DEF_ID = 3; // Replace with interaction attr def ID
 const HARDCODED_USERNAME_ATTR_DEF_ID = 2; // Replace with username attr def ID
-const HARDCODED_OWN_TWITTER_USERNAME = '12345'; // Replace with your agent's username
+const HARDCODED_OWN_TWITTER_USERNAME = 'test_twitter_user_123'; // Replace with your agent's username
 const DEFAULT_DAYS_FILTER = 7; // Default number of days for recent activity
 
 // --- MirrorDB API Endpoints (Assumed based on Python)---
@@ -210,7 +210,7 @@ async function getActiveTwitterHandles(days = DEFAULT_DAYS_FILTER) {
 
 // Example usage:
 (async () => {
-    const activeHandles = await getActiveTwitterHandles(14); // Get handles from last 14 days
+    const activeHandles = await getActiveTwitterHandles(7); // Get handles from last 14 days
     console.log("\nActive Handles:");
     console.log(activeHandles);
 })();
