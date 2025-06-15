@@ -6,11 +6,14 @@ import time
 import math
 import sys
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 load_dotenv()
-
+start_time = time.time()
 # --- Configuration (replace with your actual values) ---
-RPC_URL = os.getenv("RPC_URL")
+RPC_URLS = [
+    url.strip() for url in os.getenv("RPC_URLS", os.getenv("RPC_URL")).split(",")
+]
 CONTRACT_ADDRESS = "0x82A9c823332518c32a0c0eDC050Ef00934Cf04D4"
 # ADDRESS_TO_INVESTIGATE = "0x39FCE6a33596b7319d7941F3F90d256574bcc954"
 
@@ -33,13 +36,31 @@ from abi_memebase import memebase_abi
 ABI = memebase_abi
 
 # --- Connect to Ethereum Node ---
-w3 = Web3(Web3.HTTPProvider(RPC_URL))
+w3 = Web3(Web3.HTTPProvider(RPC_URLS[0]))
+
+
+def check_rpc_urls(rpc_urls):
+    healthy_rpcs = []
+    with ThreadPoolExecutor(max_workers=len(rpc_urls)) as executor:
+        future_to_url = {
+            executor.submit(Web3(Web3.HTTPProvider(url)).eth.get_block_number): url
+            for url in rpc_urls
+        }
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                future.result()
+                healthy_rpcs.append(url)
+                print(f"✅ RPC URL is healthy: {url}")
+            except Exception as e:
+                print(f"❌ RPC URL failed health check: {url} - Error: {e}")
+    return healthy_rpcs
+
 
 if not w3.is_connected():
-    print("Failed to connect to Ethereum node. Please check your RPC_URL.")
+    print("Failed to connect to Ethereum node. Please check your RPC_URL(s).")
     exit()
 
-print(f"Successfully connected to Ethereum node: {w3.client_version}")
 contract = w3.eth.contract(address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=ABI)
 
 
@@ -75,57 +96,93 @@ def display_progress(
     sys.stdout.flush()
 
 
+def fetch_single_chunk(
+    rpc_url, contract_address, abi, event_name, from_block, to_block
+):
+    try:
+        w3_instance = Web3(Web3.HTTPProvider(rpc_url))
+        contract_instance = w3_instance.eth.contract(
+            address=Web3.to_checksum_address(contract_address), abi=abi
+        )
+        event_contract = getattr(contract_instance.events, event_name)()
+        return event_contract.get_logs(from_block=from_block, to_block=to_block)
+    except Exception as e:
+        print(
+            f"Error fetching {event_name} logs for range {from_block}-{to_block} from {rpc_url}: {e}"
+        )
+        return []
+
+
 # Helper function to fetch logs in chunks
 def fetch_event_logs_in_chunks(
-    contract, event_name, start_block, end_block, max_range_per_request
+    contract, event_name, start_block, end_block, max_range_per_request, rpc_urls
 ):
     """
     Fetches logs for a specific event from a contract over a large block range
-    by breaking it into smaller chunks.
+    by breaking it into smaller chunks and fetching them in parallel.
     """
     all_logs = []
-    event_contract = getattr(contract.events, event_name)()
-
     total_blocks = end_block - start_block + 1
-    total_chunks = math.ceil(total_blocks / max_range_per_request)
+    # total_chunks = math.ceil(total_blocks / max_range_per_request)
     start_overall_time = time.time()
-    chunk_idx = 0
+    completed_chunks = 0
 
-    # Iterate through blocks in chunks
-    for current_from_block in range(start_block, end_block + 1, max_range_per_request):
-        current_to_block = min(
-            current_from_block + max_range_per_request - 1, end_block
-        )
+    num_rpcs = len(rpc_urls)
+    blocks_per_rpc = math.ceil(total_blocks / num_rpcs)
 
-        # Exit early if the current_from_block has surpassed the current_to_block
-        # This can happen if the last chunk is smaller than max_range_per_request
-        # and current_from_block is already beyond end_block.
-        if current_from_block > current_to_block:
-            break
+    tasks = []
+    for i in range(num_rpcs):
+        rpc_start_block = start_block + i * blocks_per_rpc
+        rpc_end_block = min(rpc_start_block + blocks_per_rpc - 1, end_block)
 
-        chunk_idx += 1  # Increment before display for 1-based indexing in display
+        if rpc_start_block > rpc_end_block:
+            continue
 
-        # Display progress
-        display_progress(
-            chunk_idx,
-            total_chunks,
-            start_overall_time,
-            event_name,
-            current_from_block,
-            current_to_block,
-        )
-
-        try:
-            logs_chunk = event_contract.get_logs(
-                from_block=current_from_block, to_block=current_to_block
+        # Each RPC will handle its segment, but we still need to break it down by max_range_per_request
+        for current_from_block in range(
+            rpc_start_block, rpc_end_block + 1, max_range_per_request
+        ):
+            current_to_block = min(
+                current_from_block + max_range_per_request - 1, rpc_end_block
             )
-            all_logs.extend(logs_chunk)
-        except Exception as e:
-            print(
-                f"Error fetching {event_name} logs for range {current_from_block}-{current_to_block}: {e}"
+            tasks.append(
+                (
+                    rpc_urls[i],
+                    contract.address,
+                    ABI,
+                    event_name,
+                    current_from_block,
+                    current_to_block,
+                )
             )
-            # Depending on requirements, you might want to implement retry logic or
-            # raise the exception to stop execution. For now, it prints and continues.
+
+    with ThreadPoolExecutor(max_workers=len(rpc_urls)) as executor:
+        future_to_chunk = {
+            executor.submit(fetch_single_chunk, *task): task for task in tasks
+        }
+
+        for future in as_completed(future_to_chunk):
+            chunk_range_task = future_to_chunk[future]
+            try:
+                logs_chunk = future.result()
+                all_logs.extend(logs_chunk)
+            except Exception as exc:
+                print(
+                    f"Chunk {chunk_range_task[4]}-{chunk_range_task[5]} generated an exception: {exc}"
+                )
+            finally:
+                completed_chunks += 1
+                display_progress(
+                    completed_chunks,
+                    len(tasks),
+                    start_overall_time,
+                    event_name,
+                    start_block,
+                    end_block,
+                )
+
+    sys.stdout.write("\n")
+    sys.stdout.flush()
     return all_logs
 
 
@@ -214,6 +271,13 @@ else:
 addresses_input = input("\nEnter addresses to investigate (comma-separated): ")
 ADDRESSES_TO_INVESTIGATE = [addr.strip() for addr in addresses_input.split(",")]
 
+# --- Health Check for RPCs ---
+print("\n--- Checking RPC URL Health ---")
+RPC_URLS = check_rpc_urls(RPC_URLS)
+if not RPC_URLS:
+    print("No healthy RPC URLs available. Exiting.")
+    exit()
+
 # --- Analysis ---
 eth_to_usd_rate = fetch_eth_to_usd_rate()
 
@@ -233,6 +297,7 @@ for event_key in selected_event_keys:
             start_block_overall,
             end_block_overall,
             MAX_BLOCK_RANGE_PER_REQUEST,
+            RPC_URLS,
         )
 
         for address in ADDRESSES_TO_INVESTIGATE:
@@ -248,3 +313,6 @@ for event_key in selected_event_keys:
             )
     else:
         print(f"Warning: Invalid event selection: {event_key}. Skipping.")
+
+end_time = time.time()
+print(f"Time taken: {end_time - start_time:.2f} seconds")
