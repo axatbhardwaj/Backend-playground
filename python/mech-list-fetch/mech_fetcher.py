@@ -15,10 +15,11 @@ SUBGRAPH_ENDPOINT = "https://subgraph.satsuma-prod.com/1e739c661bf8/axats-team--
 
 # Payment type mapping based on factory addresses
 PAYMENT_TYPE_MAPPING = {
-    '0x8b299c20f87e3fcbf0e1b86dc0acc06ab6993ef': 'Native Token Pricing (xDAI)',
-    '0x31ffdc795fdf36696b8edf7583a3d115995a45fa': 'OLAS Token Pricing',
-    '0x65fd74c29463afe08c879a3020323dd7df02da57': 'xDAI Subscription'
+    "0x8b299c20f87e3fcbff0e1b86dc0acc06ab6993ef": "Native Token Pricing (xDAI)",
+    "0x31ffdc795fdf36696b8edf7583a3d115995a45fa": "OLAS Token Pricing",
+    "0x65fd74c29463afe08c879a3020323dd7df02da57": "xDAI Subscription",
 }
+
 
 def fetch_all_mechs() -> List[Dict[str, Any]]:
     """Fetch all mechs with their service IDs and factory addresses"""
@@ -41,15 +42,16 @@ def fetch_all_mechs() -> List[Dict[str, Any]]:
     }
     """
 
-    response = requests.post(SUBGRAPH_ENDPOINT, json={'query': query})
+    response = requests.post(SUBGRAPH_ENDPOINT, json={"query": query})
 
     if response.status_code == 200:
         data = response.json()
-        return data['data']['createMeches']
+        return data["data"]["createMeches"]
     else:
         print(f"Error: {response.status_code}")
         print(response.text)
         return []
+
 
 def fetch_mechs_by_payment_type(factory_address: str) -> List[Dict[str, Any]]:
     """Fetch mechs for a specific payment type"""
@@ -72,25 +74,44 @@ def fetch_mechs_by_payment_type(factory_address: str) -> List[Dict[str, Any]]:
     }}
     """
 
-    response = requests.post(SUBGRAPH_ENDPOINT, json={'query': query})
+    response = requests.post(SUBGRAPH_ENDPOINT, json={"query": query})
 
     if response.status_code == 200:
         data = response.json()
-        return data['data']['createMeches']
+        return data["data"]["createMeches"]
     else:
         print(f"Error: {response.status_code}")
         print(response.text)
         return []
 
-def group_mechs_by_payment_type_and_service(mechs: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+def analyze_unknown_factories(mechs: List[Dict[str, Any]]) -> Dict[str, int]:
+    """Analyze factory addresses that are not in our mapping"""
+
+    unknown_factories = {}
+    known_factories = set(PAYMENT_TYPE_MAPPING.keys())
+
+    for mech in mechs:
+        factory_address = mech["mechFactory"].lower()
+        if factory_address not in known_factories:
+            if factory_address not in unknown_factories:
+                unknown_factories[factory_address] = 0
+            unknown_factories[factory_address] += 1
+
+    return unknown_factories
+
+
+def group_mechs_by_payment_type_and_service(
+    mechs: List[Dict[str, Any]],
+) -> Dict[str, Any]:
     """Group mechs by payment type and service ID"""
 
     grouped = {}
 
     for mech in mechs:
-        factory_address = mech['mechFactory'].lower()
-        payment_type = PAYMENT_TYPE_MAPPING.get(factory_address, 'Unknown')
-        service_id = mech['serviceId']
+        factory_address = mech["mechFactory"].lower()
+        payment_type = PAYMENT_TYPE_MAPPING.get(factory_address, "Unknown")
+        service_id = mech["serviceId"]
 
         if payment_type not in grouped:
             grouped[payment_type] = {}
@@ -101,6 +122,7 @@ def group_mechs_by_payment_type_and_service(mechs: List[Dict[str, Any]]) -> Dict
         grouped[payment_type][service_id].append(mech)
 
     return grouped
+
 
 def display_grouped_mechs(grouped_mechs: Dict[str, Any]) -> None:
     """Display grouped mech data in a readable format"""
@@ -117,6 +139,7 @@ def display_grouped_mechs(grouped_mechs: Dict[str, Any]) -> None:
 
             for i, mech in enumerate(mechs[:3], 1):  # Show first 3 mechs
                 print(f"        {i}. Mech: {mech['mech'][:10]}...")
+                print(f"           Factory: {mech['mechFactory']}")
                 print(f"           Block: {mech['blockNumber']}")
                 print(f"           Timestamp: {mech['blockTimestamp']}")
 
@@ -126,6 +149,7 @@ def display_grouped_mechs(grouped_mechs: Dict[str, Any]) -> None:
             print()
 
         print()
+
 
 def main():
     """Main function to fetch and display mech data"""
@@ -141,6 +165,15 @@ def main():
 
     print(f"✅ Found {len(all_mechs)} mechs")
 
+    # Analyze unknown factory addresses
+    unknown_factories = analyze_unknown_factories(all_mechs)
+    if unknown_factories:
+        print(f"\n🔍 Found {len(unknown_factories)} unknown factory addresses:")
+        for factory, count in sorted(
+            unknown_factories.items(), key=lambda x: x[1], reverse=True
+        ):
+            print(f"   {factory} ({count} mechs)")
+
     # Group mechs by payment type and service ID
     grouped_mechs = group_mechs_by_payment_type_and_service(all_mechs)
 
@@ -149,8 +182,11 @@ def main():
 
     # Example: Fetch mechs for specific payment type
     print("\n🔍 Example: Fetching Native Token mechs...")
-    native_mechs = fetch_mechs_by_payment_type("0x8b299c20F87e3fcBfF0e1B86dC0acC06AB6993EF")
+    native_mechs = fetch_mechs_by_payment_type(
+        "0x8b299c20F87e3fcBfF0e1B86dC0acC06AB6993EF"
+    )
     print(f"✅ Found {len(native_mechs)} Native Token mechs")
+
 
 if __name__ == "__main__":
     main()

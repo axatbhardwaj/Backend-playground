@@ -25,9 +25,9 @@ python mech_fetcher.py
 
 1. **Fetches all mechs** using the CreateMech entity
 2. **Groups them by payment type** using factory addresses:
-   - `0x8b299c20F87e3fcBfF0e1B86dC0acC06AB6993EF` → Native Token Pricing (xDAI)
-   - `0x31ffDC795FDF36696B8eDF7583A3D115995a45FA` → OLAS Token Pricing
-   - `0x65fd74C29463afe08c879a3020323DD7DF02DA57` → xDAI Subscription
+   - `0x8b299c20f87e3fcbff0e1b86dc0acc06ab6993ef` → Native Token Pricing (xDAI)
+   - `0x31ffdc795fdf36696b8edf7583a3d115995a45fa` → OLAS Token Pricing
+   - `0x65fd74c29463afe08c879a3020323dd7df02da57` → xDAI Subscription
 
 3. **Groups by service ID** within each payment type
 4. **Displays results** in a readable format
