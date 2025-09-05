@@ -1,4 +1,8 @@
-query : 
+# The Graph Protocol Query and Response
+
+## GraphQL Query
+
+```graphql
 query MechsOrderedByServiceDeliveriesWithHead {
   meches(orderBy: service__totalDeliveries, orderDirection: desc) {
     address
@@ -13,8 +17,11 @@ query MechsOrderedByServiceDeliveriesWithHead {
     deployment
   }
 }
+```
 
-Response :
+## Response
+
+```json
 {
   "data": {
     "meches": [
@@ -243,3 +250,4 @@ Response :
     }
   }
 }
+```
