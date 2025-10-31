@@ -6,21 +6,24 @@ import {
   beforeAll,
   afterAll
 } from "matchstick-as/assembly/index"
-import { Address } from "@graphprotocol/graph-ts"
-import { ProxyOwnerUpdate } from "../generated/schema"
-import { ProxyOwnerUpdate as ProxyOwnerUpdateEvent } from "../generated/olas/olas"
-import { handleProxyOwnerUpdate } from "../src/olas"
-import { createProxyOwnerUpdateEvent } from "./olas-utils"
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { Approval } from "../generated/schema"
+import { Approval as ApprovalEvent } from "../generated/olas/olas"
+import { handleApproval } from "../src/olas"
+import { createApprovalEvent } from "./olas-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#tests-structure
 
 describe("Describe entity assertions", () => {
   beforeAll(() => {
-    let _new = Address.fromString("0x0000000000000000000000000000000000000001")
-    let _old = Address.fromString("0x0000000000000000000000000000000000000001")
-    let newProxyOwnerUpdateEvent = createProxyOwnerUpdateEvent(_new, _old)
-    handleProxyOwnerUpdate(newProxyOwnerUpdateEvent)
+    let owner = Address.fromString("0x0000000000000000000000000000000000000001")
+    let spender = Address.fromString(
+      "0x0000000000000000000000000000000000000001"
+    )
+    let value = BigInt.fromI32(234)
+    let newApprovalEvent = createApprovalEvent(owner, spender, value)
+    handleApproval(newApprovalEvent)
   })
 
   afterAll(() => {
@@ -30,21 +33,27 @@ describe("Describe entity assertions", () => {
   // For more test scenarios, see:
   // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#write-a-unit-test
 
-  test("ProxyOwnerUpdate created and stored", () => {
-    assert.entityCount("ProxyOwnerUpdate", 1)
+  test("Approval created and stored", () => {
+    assert.entityCount("Approval", 1)
 
     // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
     assert.fieldEquals(
-      "ProxyOwnerUpdate",
+      "Approval",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "_new",
+      "owner",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
-      "ProxyOwnerUpdate",
+      "Approval",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "_old",
+      "spender",
       "0x0000000000000000000000000000000000000001"
+    )
+    assert.fieldEquals(
+      "Approval",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
+      "value",
+      "234"
     )
 
     // More assert options:

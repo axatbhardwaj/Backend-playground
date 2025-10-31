@@ -16,14 +16,26 @@ dataSources:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - ProxyOwnerUpdate
-        - ProxyUpdated
+        - Approval
+        - MetaTransactionExecuted
+        - RoleAdminChanged
+        - RoleGranted
+        - RoleRevoked
+        - Transfer
       abis:
         - name: olas
           file: ./abis/olas.json
       eventHandlers:
-        - event: ProxyOwnerUpdate(address,address)
-          handler: handleProxyOwnerUpdate
-        - event: ProxyUpdated(indexed address,indexed address)
-          handler: handleProxyUpdated
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleApproval
+        - event: MetaTransactionExecuted(address,address,bytes)
+          handler: handleMetaTransactionExecuted
+        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleRoleAdminChanged
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
       file: ./src/olas.ts

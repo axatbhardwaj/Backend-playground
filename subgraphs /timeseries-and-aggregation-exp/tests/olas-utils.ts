@@ -1,39 +1,158 @@
 import { newMockEvent } from "matchstick-as"
-import { ethereum, Address } from "@graphprotocol/graph-ts"
-import { ProxyOwnerUpdate, ProxyUpdated } from "../generated/olas/olas"
+import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
+import {
+  Approval,
+  MetaTransactionExecuted,
+  RoleAdminChanged,
+  RoleGranted,
+  RoleRevoked,
+  Transfer
+} from "../generated/olas/olas"
 
-export function createProxyOwnerUpdateEvent(
-  _new: Address,
-  _old: Address
-): ProxyOwnerUpdate {
-  let proxyOwnerUpdateEvent = changetype<ProxyOwnerUpdate>(newMockEvent())
+export function createApprovalEvent(
+  owner: Address,
+  spender: Address,
+  value: BigInt
+): Approval {
+  let approvalEvent = changetype<Approval>(newMockEvent())
 
-  proxyOwnerUpdateEvent.parameters = new Array()
+  approvalEvent.parameters = new Array()
 
-  proxyOwnerUpdateEvent.parameters.push(
-    new ethereum.EventParam("_new", ethereum.Value.fromAddress(_new))
+  approvalEvent.parameters.push(
+    new ethereum.EventParam("owner", ethereum.Value.fromAddress(owner))
   )
-  proxyOwnerUpdateEvent.parameters.push(
-    new ethereum.EventParam("_old", ethereum.Value.fromAddress(_old))
+  approvalEvent.parameters.push(
+    new ethereum.EventParam("spender", ethereum.Value.fromAddress(spender))
+  )
+  approvalEvent.parameters.push(
+    new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
   )
 
-  return proxyOwnerUpdateEvent
+  return approvalEvent
 }
 
-export function createProxyUpdatedEvent(
-  _new: Address,
-  _old: Address
-): ProxyUpdated {
-  let proxyUpdatedEvent = changetype<ProxyUpdated>(newMockEvent())
+export function createMetaTransactionExecutedEvent(
+  userAddress: Address,
+  relayerAddress: Address,
+  functionSignature: Bytes
+): MetaTransactionExecuted {
+  let metaTransactionExecutedEvent =
+    changetype<MetaTransactionExecuted>(newMockEvent())
 
-  proxyUpdatedEvent.parameters = new Array()
+  metaTransactionExecutedEvent.parameters = new Array()
 
-  proxyUpdatedEvent.parameters.push(
-    new ethereum.EventParam("_new", ethereum.Value.fromAddress(_new))
+  metaTransactionExecutedEvent.parameters.push(
+    new ethereum.EventParam(
+      "userAddress",
+      ethereum.Value.fromAddress(userAddress)
+    )
   )
-  proxyUpdatedEvent.parameters.push(
-    new ethereum.EventParam("_old", ethereum.Value.fromAddress(_old))
+  metaTransactionExecutedEvent.parameters.push(
+    new ethereum.EventParam(
+      "relayerAddress",
+      ethereum.Value.fromAddress(relayerAddress)
+    )
+  )
+  metaTransactionExecutedEvent.parameters.push(
+    new ethereum.EventParam(
+      "functionSignature",
+      ethereum.Value.fromBytes(functionSignature)
+    )
   )
 
-  return proxyUpdatedEvent
+  return metaTransactionExecutedEvent
+}
+
+export function createRoleAdminChangedEvent(
+  role: Bytes,
+  previousAdminRole: Bytes,
+  newAdminRole: Bytes
+): RoleAdminChanged {
+  let roleAdminChangedEvent = changetype<RoleAdminChanged>(newMockEvent())
+
+  roleAdminChangedEvent.parameters = new Array()
+
+  roleAdminChangedEvent.parameters.push(
+    new ethereum.EventParam("role", ethereum.Value.fromFixedBytes(role))
+  )
+  roleAdminChangedEvent.parameters.push(
+    new ethereum.EventParam(
+      "previousAdminRole",
+      ethereum.Value.fromFixedBytes(previousAdminRole)
+    )
+  )
+  roleAdminChangedEvent.parameters.push(
+    new ethereum.EventParam(
+      "newAdminRole",
+      ethereum.Value.fromFixedBytes(newAdminRole)
+    )
+  )
+
+  return roleAdminChangedEvent
+}
+
+export function createRoleGrantedEvent(
+  role: Bytes,
+  account: Address,
+  sender: Address
+): RoleGranted {
+  let roleGrantedEvent = changetype<RoleGranted>(newMockEvent())
+
+  roleGrantedEvent.parameters = new Array()
+
+  roleGrantedEvent.parameters.push(
+    new ethereum.EventParam("role", ethereum.Value.fromFixedBytes(role))
+  )
+  roleGrantedEvent.parameters.push(
+    new ethereum.EventParam("account", ethereum.Value.fromAddress(account))
+  )
+  roleGrantedEvent.parameters.push(
+    new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
+  )
+
+  return roleGrantedEvent
+}
+
+export function createRoleRevokedEvent(
+  role: Bytes,
+  account: Address,
+  sender: Address
+): RoleRevoked {
+  let roleRevokedEvent = changetype<RoleRevoked>(newMockEvent())
+
+  roleRevokedEvent.parameters = new Array()
+
+  roleRevokedEvent.parameters.push(
+    new ethereum.EventParam("role", ethereum.Value.fromFixedBytes(role))
+  )
+  roleRevokedEvent.parameters.push(
+    new ethereum.EventParam("account", ethereum.Value.fromAddress(account))
+  )
+  roleRevokedEvent.parameters.push(
+    new ethereum.EventParam("sender", ethereum.Value.fromAddress(sender))
+  )
+
+  return roleRevokedEvent
+}
+
+export function createTransferEvent(
+  from: Address,
+  to: Address,
+  value: BigInt
+): Transfer {
+  let transferEvent = changetype<Transfer>(newMockEvent())
+
+  transferEvent.parameters = new Array()
+
+  transferEvent.parameters.push(
+    new ethereum.EventParam("from", ethereum.Value.fromAddress(from))
+  )
+  transferEvent.parameters.push(
+    new ethereum.EventParam("to", ethereum.Value.fromAddress(to))
+  )
+  transferEvent.parameters.push(
+    new ethereum.EventParam("value", ethereum.Value.fromUnsignedBigInt(value))
+  )
+
+  return transferEvent
 }
