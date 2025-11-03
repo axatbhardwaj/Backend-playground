@@ -7,23 +7,21 @@ import {
   afterAll
 } from "matchstick-as/assembly/index"
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts"
-import { Approval } from "../generated/schema"
-import { Approval as ApprovalEvent } from "../generated/olas/olas"
-import { handleApproval } from "../src/olas"
-import { createApprovalEvent } from "./olas-utils"
+import { Transfer } from "../generated/schema"
+import { Transfer as TransferEvent } from "../generated/olas/olas"
+import { handleTransfer } from "../src/olas"
+import { createTransferEvent } from "./olas-utils"
 
 // Tests structure (matchstick-as >=0.5.0)
 // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#tests-structure
 
 describe("Describe entity assertions", () => {
   beforeAll(() => {
-    let owner = Address.fromString("0x0000000000000000000000000000000000000001")
-    let spender = Address.fromString(
-      "0x0000000000000000000000000000000000000001"
-    )
-    let value = BigInt.fromI32(234)
-    let newApprovalEvent = createApprovalEvent(owner, spender, value)
-    handleApproval(newApprovalEvent)
+    let from = Address.fromString("0x0000000000000000000000000000000000000001")
+    let to = Address.fromString("0x0000000000000000000000000000000000000002")
+    let value = BigInt.fromI32(1000)
+    let transferEvent = createTransferEvent(from, to, value)
+    handleTransfer(transferEvent)
   })
 
   afterAll(() => {
@@ -33,30 +31,52 @@ describe("Describe entity assertions", () => {
   // For more test scenarios, see:
   // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#write-a-unit-test
 
-  test("Approval created and stored", () => {
-    assert.entityCount("Approval", 1)
+  test("Transfer created and stored", () => {
+    assert.entityCount("Transfer", 1)
 
-    // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
+    // Recreate the event to access its properties (AssemblyScript doesn't support closures)
+    let from = Address.fromString("0x0000000000000000000000000000000000000001")
+    let to = Address.fromString("0x0000000000000000000000000000000000000002")
+    let value = BigInt.fromI32(1000)
+    let transferEvent = createTransferEvent(from, to, value)
+    
+    // Construct the entity ID the same way the handler does: transaction.hash.concatI32(logIndex.toI32())
+    let txHash = transferEvent.transaction.hash
+    let logIndex = transferEvent.logIndex
+    let entityId = txHash.concatI32(logIndex.toI32())
+
+    // Check that the Transfer entity has the correct field values
     assert.fieldEquals(
-      "Approval",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "owner",
+      "Transfer",
+      entityId.toHexString(),
+      "from",
       "0x0000000000000000000000000000000000000001"
     )
     assert.fieldEquals(
-      "Approval",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "spender",
-      "0x0000000000000000000000000000000000000001"
+      "Transfer",
+      entityId.toHexString(),
+      "to",
+      "0x0000000000000000000000000000000000000002"
     )
     assert.fieldEquals(
-      "Approval",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
+      "Transfer",
+      entityId.toHexString(),
       "value",
-      "234"
+      "1000"
     )
 
-    // More assert options:
-    // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#asserts
+    // Also check that block data is present
+    assert.fieldEquals(
+      "Transfer",
+      entityId.toHexString(),
+      "blockNumber",
+      transferEvent.block.number.toString()
+    )
+    assert.fieldEquals(
+      "Transfer",
+      entityId.toHexString(),
+      "transactionHash",
+      txHash.toHexString()
+    )
   })
 })
