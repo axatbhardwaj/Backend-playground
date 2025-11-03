@@ -18,9 +18,10 @@ type TransferTimeseries @entity(timeseries: true) {
   transactionHash: Bytes!
 }
 
+# https://github.com/graphprotocol/graph-node/blob/master/docs/aggregations.md#:~:text=intervals%3A%20a%20non%2Dempty%20array%20of%20intervals%3B%20currently%2C%20only%20hour%20and%20day%20are%20supported
 type TransferAggregation
   @aggregation(
-    intervals: ["hour", "day", "year", "month"]
+    intervals: ["hour", "day"]
     source: "TransferTimeseries"
     dimensions: ["from", "to"]
   ) {
