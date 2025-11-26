@@ -1,0 +1,41 @@
+[
+  {
+    "timestamp": "2025-11-26T14:37:23.448Z",
+    "allocationId": "0x4d07deddc57d269188de837ab3cb2effb61cb309",
+    "indexer": "0x7bb834017672b1135466661d8dd69c5dd0b3bf51",
+    "indexerName": "wavefive.eth",
+    "data": {
+      "_meta": {
+        "block": {
+          "hash": "0x22d111a64486f7cf74adcc08151cc5cba62afe9bb538e5f6843bda145759ce5c",
+          "number": 43343681
+        }
+      },
+      "global": {
+        "totalFeesIn": "72366450000000000000004",
+        "totalFeesInLegacyMech": "54952230000000000000004",
+        "totalFeesInLegacyMechMarketPlace": "17414220000000000000000"
+      }
+    }
+  },
+  {
+    "timestamp": "2025-11-26T14:38:25.448Z",
+    "signer": "0x93Ead55E09965AA9f69d777eE918BeC12AF2b2a3",
+    "indexer": "0x93Ead55E09965AA9f69d777eE918BeC12AF2b2a3",
+    "indexerName": null,
+    "signerType": "unknown",
+    "data": {
+      "_meta": {
+        "block": {
+          "hash": "0x6ffbceaddac9c04b593aeba952da0931baeba905cba54472963350329b65f2d1",
+          "number": 43343692
+        }
+      },
+      "global": {
+        "totalFeesIn": "72366450000000000000004",
+        "totalFeesInLegacyMech": "54952230000000000000004",
+        "totalFeesInLegacyMechMarketPlace": "17414220000000000000000"
+      }
+    }
+  }
+]
