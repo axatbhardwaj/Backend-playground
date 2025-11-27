@@ -52,7 +52,6 @@ When routing switches back to `wavefive.eth`, values return to the higher baseli
 - **Discrepancy Consistent**: Yes, every switch to `upgradeindexer` showed lower values
 
 
-
 ## Technical Notes
 
 ### Attestation Verification
@@ -81,9 +80,19 @@ Timestamp               Indexer         totalFeesIn  LegacyMech  MarketPlace  Fl
 2025-11-26T21:35:51     0x7bb83401..    72374        54958       17415        🔄 (back to normal)
 ```
 
-## Scripts Used
+## Interesting Observation: Sync Status vs Data
 
-The following scripts were created for this investigation:
+From the Graph Explorer (see `Screenshot_20251127_115422.png`):
+
+| Indexer | Blocks Behind | Data Values |
+|---------|---------------|-------------|
+| upgradeindexer | **0 blocks** (100% synced) | Lower (~71,400 ETH) |
+| wavefive.eth | **24 blocks behind** (99.9%) | Higher (~72,400 ETH) |
+| ellipfra-indexer | 1,292,146 blocks behind (97%) | Not observed in queries |
+
+**Key Finding**: The fully synced indexer (`upgradeindexer`) returns **lower** values than the indexer that is 24 blocks behind (`wavefive.eth`). This suggests the discrepancy is not due to sync status, but rather **missing historical data** in `upgradeindexer`.
+
+## Scripts Used
 
 | Script | Location | Purpose |
 |--------|----------|---------|
@@ -106,5 +115,9 @@ node "subgraphs /discrepancy-check-lm-fees/analyze_fees.js"
 
 ## Conclusion
 
-There is a **confirmed data discrepancy** between `wavefive.eth` and `upgradeindexer` for the `olas-legacy-mech-fees` subgraph. The `upgradeindexer` is consistently reporting ~1,000 ETH less in total fees. This needs to be investigated further and potentially reported as an indexing issue.
+There is a **confirmed data discrepancy** between `wavefive.eth` and `upgradeindexer` for the `olas-legacy-mech-fees` subgraph. 
+
+The `upgradeindexer` (fully synced, 0 blocks behind) is consistently reporting **~1,000 ETH less** in total fees compared to `wavefive.eth` (24 blocks behind). This paradox suggests `upgradeindexer` may have missed early historical events during initial indexing.
+
+This needs to be investigated further and potentially reported as an indexing issue to The Graph team.
 
