@@ -1,0 +1,63 @@
+const fs = require('fs');
+
+const logs = JSON.parse(fs.readFileSync('response_log.json', 'utf-8'));
+
+console.log('Timestamp\t\t\tIndexer\t\t\ttotalFeesIn\tLegacyMech\tMarketPlace\tFlags');
+console.log('-'.repeat(120));
+
+let prev = null;
+let prevIndexer = null;
+let indexerChanges = 0;
+
+for (const entry of logs) {
+  const g = entry.data?.global;
+  if (!g) continue;
+  
+  const ts = entry.timestamp.slice(0, 19);
+  const indexer = entry.indexer || 'unknown';
+  const indexerShort = indexer.slice(0, 10) + '..';
+  
+  // Convert to readable format (divide by 1e18 for ETH)
+  const feesIn = (BigInt(g.totalFeesIn) / BigInt(1e18)).toString();
+  const legacy = (BigInt(g.totalFeesInLegacyMech) / BigInt(1e18)).toString();
+  const market = (BigInt(g.totalFeesInLegacyMechMarketPlace) / BigInt(1e18)).toString();
+  
+  let flags = [];
+  
+  // Check for indexer change
+  if (prevIndexer && indexer !== prevIndexer) {
+    const prevShort = prevIndexer.slice(0, 10) + '..';
+    flags.push(`🔄 ${prevShort} → ${indexerShort}`);
+    indexerChanges++;
+  }
+  
+  // Check for decreases (potential issue)
+  if (prev) {
+    if (BigInt(g.totalFeesIn) < BigInt(prev.totalFeesIn)) flags.push('⚠️ FEES↓');
+    if (BigInt(g.totalFeesInLegacyMech) < BigInt(prev.totalFeesInLegacyMech)) flags.push('⚠️ LEGACY↓');
+    if (BigInt(g.totalFeesInLegacyMechMarketPlace) < BigInt(prev.totalFeesInLegacyMechMarketPlace)) flags.push('⚠️ MARKET↓');
+  }
+  
+  const flagStr = flags.length ? flags.join(' ') : '';
+  console.log(`${ts}\t${indexerShort.padEnd(14)}\t${feesIn}\t\t${legacy}\t\t${market}\t\t${flagStr}`);
+  
+  prev = g;
+  prevIndexer = indexer;
+}
+
+console.log('\n=== Summary ===');
+console.log(`Indexer changes detected: ${indexerChanges}`);
+
+const first = logs.find(e => e.data?.global)?.data.global;
+const last = logs.filter(e => e.data?.global).pop()?.data.global;
+
+if (first && last) {
+  const diffFees = BigInt(last.totalFeesIn) - BigInt(first.totalFeesIn);
+  const diffLegacy = BigInt(last.totalFeesInLegacyMech) - BigInt(first.totalFeesInLegacyMech);
+  const diffMarket = BigInt(last.totalFeesInLegacyMechMarketPlace) - BigInt(first.totalFeesInLegacyMechMarketPlace);
+  
+  console.log(`Total increase in totalFeesIn: ${(diffFees / BigInt(1e18)).toString()} ETH`);
+  console.log(`Total increase in LegacyMech: ${(diffLegacy / BigInt(1e18)).toString()} ETH`);
+  console.log(`Total increase in MarketPlace: ${(diffMarket / BigInt(1e18)).toString()} ETH`);
+}
+
