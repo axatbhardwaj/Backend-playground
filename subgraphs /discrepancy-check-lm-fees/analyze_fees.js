@@ -49,17 +49,3 @@ for (const entry of logs) {
 
 console.log('\n=== Summary ===');
 console.log(`Indexer changes detected: ${indexerChanges}`);
-
-const first = logs.find(e => e.data?.global)?.data.global;
-const last = logs.filter(e => e.data?.global).pop()?.data.global;
-
-if (first && last) {
-  const diffFees = BigInt(last.totalFeesIn) - BigInt(first.totalFeesIn);
-  const diffLegacy = BigInt(last.totalFeesInLegacyMech) - BigInt(first.totalFeesInLegacyMech);
-  const diffMarket = BigInt(last.totalFeesInLegacyMechMarketPlace) - BigInt(first.totalFeesInLegacyMechMarketPlace);
-  
-    console.log(`Total increase in totalFeesIn: ${(diffFees / BigInt(1e18)).toString()} xDAI`);
-    console.log(`Total increase in LegacyMech: ${(diffLegacy / BigInt(1e18)).toString()} xDAI`);
-    console.log(`Total increase in MarketPlace: ${(diffMarket / BigInt(1e18)).toString()} xDAI`);
-}
-
