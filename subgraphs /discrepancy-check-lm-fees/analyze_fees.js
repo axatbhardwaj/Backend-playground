@@ -1,6 +1,8 @@
 const fs = require('fs');
+const path = require('path');
 
-const logs = JSON.parse(fs.readFileSync('response_log.json', 'utf-8'));
+const LOG_FILE = path.join(__dirname, 'response_log.json');
+const logs = JSON.parse(fs.readFileSync(LOG_FILE, 'utf-8'));
 
 console.log('Timestamp\t\t\tIndexer\t\t\ttotalFeesIn\tLegacyMech\tMarketPlace\tFlags');
 console.log('-'.repeat(120));

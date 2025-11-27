@@ -16,7 +16,7 @@ const SUBGRAPH_ID = "JCYjvfTErSkkFYjGedMHPnTcySpeB1Z81FLYUuEjWXK3";
 const NETWORK_SUBGRAPH_ID = "DZz4kDTdmzWLWsV373w2bSmoar3umKKH9y82SUKr5qmp"; // Graph Network on Arbitrum
 const SUBGRAPH_URL = `https://gateway.thegraph.com/api/${API_KEY}/subgraphs/id/${SUBGRAPH_ID}`;
 const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
-const LOG_FILE = "response_log.json";
+const LOG_FILE = path.join(__dirname, "response_log.json");
 
 // EIP-712 Domain and Types
 // The Graph Network runs on Arbitrum One - attestations are signed using Arbitrum domain
