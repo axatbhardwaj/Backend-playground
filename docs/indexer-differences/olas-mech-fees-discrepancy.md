@@ -51,22 +51,7 @@ When routing switches back to `wavefive.eth`, values return to the higher baseli
 - **Total Indexer Changes**: 25
 - **Discrepancy Consistent**: Yes, every switch to `upgradeindexer` showed lower values
 
-## Possible Causes
 
-1. **Different Start Block**: `upgradeindexer` may have started indexing from a later block, missing early events
-
-2. **Indexing Bug**: One indexer may have a bug in event processing or aggregation logic
-
-3. **Different Subgraph Version**: Although same deployment ID, there could be caching/state differences
-
-4. **Missed Events**: `upgradeindexer` may have missed some events during indexing
-
-## Recommendation
-
-1. **Query at specific block**: Query both indexers at the same block number to confirm discrepancy
-2. **Check indexing status**: Verify both indexers are fully synced and at the same block
-3. **Report to The Graph**: If discrepancy is confirmed, file a dispute or report to The Graph team
-4. **Pin to specific indexer**: Consider using allocation-specific queries to ensure consistent data
 
 ## Technical Notes
 
