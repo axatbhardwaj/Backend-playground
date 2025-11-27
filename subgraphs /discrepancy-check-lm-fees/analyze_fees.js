@@ -58,8 +58,8 @@ if (first && last) {
   const diffLegacy = BigInt(last.totalFeesInLegacyMech) - BigInt(first.totalFeesInLegacyMech);
   const diffMarket = BigInt(last.totalFeesInLegacyMechMarketPlace) - BigInt(first.totalFeesInLegacyMechMarketPlace);
   
-  console.log(`Total increase in totalFeesIn: ${(diffFees / BigInt(1e18)).toString()} ETH`);
-  console.log(`Total increase in LegacyMech: ${(diffLegacy / BigInt(1e18)).toString()} ETH`);
-  console.log(`Total increase in MarketPlace: ${(diffMarket / BigInt(1e18)).toString()} ETH`);
+    console.log(`Total increase in totalFeesIn: ${(diffFees / BigInt(1e18)).toString()} xDAI`);
+    console.log(`Total increase in LegacyMech: ${(diffLegacy / BigInt(1e18)).toString()} xDAI`);
+    console.log(`Total increase in MarketPlace: ${(diffMarket / BigInt(1e18)).toString()} xDAI`);
 }
 

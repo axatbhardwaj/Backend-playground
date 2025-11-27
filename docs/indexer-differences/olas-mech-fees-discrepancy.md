@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-We discovered a **significant data discrepancy** between two indexers serving the same subgraph. The `upgradeindexer` consistently reports **~1,000 ETH less** in `totalFeesIn` compared to `wavefive.eth`.
+We discovered a **significant data discrepancy** between two indexers serving the same subgraph. The `upgradeindexer` consistently reports **~1,000 xDAI less** in `totalFeesIn` compared to `wavefive.eth`.
 
 ## Indexers Under Investigation
 
@@ -29,9 +29,9 @@ We discovered a **significant data discrepancy** between two indexers serving th
 | 2025-11-26T21:05:51 | upgradeindexer | 71,385 | 54,547 | 16,837 |
 
 **Difference**:
-- `totalFeesIn`: ~987 ETH lower
-- `totalFeesInLegacyMech`: ~410 ETH lower
-- `totalFeesInLegacyMechMarketPlace`: ~577 ETH lower
+- `totalFeesIn`: ~987 xDAI lower
+- `totalFeesInLegacyMech`: ~410 xDAI lower
+- `totalFeesInLegacyMechMarketPlace`: ~577 xDAI lower
 
 ### Pattern Observed
 
@@ -86,8 +86,8 @@ From the Graph Explorer (see `Screenshot_20251127_115422.png`):
 
 | Indexer | Blocks Behind | Data Values |
 |---------|---------------|-------------|
-| upgradeindexer | **0 blocks** (100% synced) | Lower (~71,400 ETH) |
-| wavefive.eth | **24 blocks behind** (99.9%) | Higher (~72,400 ETH) |
+| upgradeindexer | **0 blocks** (100% synced) | Lower (~71,400 xDAI) |
+| wavefive.eth | **24 blocks behind** (99.9%) | Higher (~72,400 xDAI) |
 | ellipfra-indexer | 1,292,146 blocks behind (97%) | Not observed in queries |
 
 **Key Finding**: The fully synced indexer (`upgradeindexer`) returns **lower** values than the indexer that is 24 blocks behind (`wavefive.eth`). This suggests the discrepancy is not due to sync status, but rather **missing historical data** in `upgradeindexer`.
@@ -117,7 +117,7 @@ node "subgraphs /discrepancy-check-lm-fees/analyze_fees.js"
 
 There is a **confirmed data discrepancy** between `wavefive.eth` and `upgradeindexer` for the `olas-legacy-mech-fees` subgraph. 
 
-The `upgradeindexer` (fully synced, 0 blocks behind) is consistently reporting **~1,000 ETH less** in total fees compared to `wavefive.eth` (24 blocks behind). This paradox suggests `upgradeindexer` may have missed early historical events during initial indexing.
+The `upgradeindexer` (fully synced, 0 blocks behind) is consistently reporting **~1,000 xDAI less** in total fees compared to `wavefive.eth` (24 blocks behind). This paradox suggests `upgradeindexer` may have missed early historical events during initial indexing.
 
 This needs to be investigated further and potentially reported as an indexing issue to The Graph team.
 
