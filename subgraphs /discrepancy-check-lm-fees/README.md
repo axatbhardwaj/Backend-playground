@@ -57,23 +57,43 @@ This is better than hardcoding allocation mappings since allocations can change 
 4. Query the Graph Network subgraph to look up the Indexer for that Allocation
 
 ### 4. Logging
-Each entry in `response_log.json` contains:
+Each entry in `response_log.json` (stored in script directory) contains:
 - `timestamp`: When the check ran
 - `allocationId`: The recovered allocation address
 - `indexer`: The indexer's Ethereum address
 - `indexerName`: Display name or URL of the indexer
-- `data`: The GraphQL response data
+- `data`: The GraphQL response data (fees, block info)
 
 ## Usage
 
 1. Ensure `.env` file exists with `GRAPH_GATEWAY_API_KEY` (in project root or parent)
 
-2. Run the script:
+2. Run the data collection script:
    ```bash
    node check_subgraph.js
    ```
 
-3. Check `response_log.json` for output history
+3. Analyze the collected data:
+   ```bash
+   node analyze_fees.js
+   ```
+
+4. Check `response_log.json` for raw output history
+
+## Scripts
+
+### `check_subgraph.js`
+- Fetches subgraph data every 10 minutes
+- Verifies attestations and identifies serving indexer
+- Logs results to `response_log.json`
+
+### `analyze_fees.js`
+- Analyzes `response_log.json` for discrepancies
+- Detects when fees decrease (⚠️) - indicates indexer data mismatch
+- Detects indexer changes (🔄) - shows which indexer switched
+- Outputs summary with total fee increases
+
+**Note**: All logs are stored in the same directory as the scripts, regardless of where you run them from.
 
 ## EIP-712 Domain Reference
 
