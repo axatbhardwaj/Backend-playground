@@ -66,6 +66,10 @@ def get_clothing_suggestion(temperature: float) -> str:
     else:
         return "T-shirt weather!"
 
+def celsius_to_fahrenheit(celsius: float) -> float:
+    """Pure function to convert temperature."""
+    return (celsius * 9/5) + 32
+
 # --- Impure Functions (I/O) ---
 # Separated to keep core logic testable
 

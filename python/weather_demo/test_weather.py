@@ -1,5 +1,12 @@
 import unittest
-from weather import parse_weather_data, format_report, get_clothing_suggestion, WeatherData, WeatherError
+from weather import (
+    parse_weather_data, 
+    format_report, 
+    get_clothing_suggestion, 
+    celsius_to_fahrenheit,
+    WeatherData, 
+    WeatherError
+)
 
 class TestWeatherCore(unittest.TestCase):
     """
@@ -58,6 +65,11 @@ class TestWeatherCore(unittest.TestCase):
         suggestion = get_clothing_suggestion(25.0)
         # Assert
         self.assertEqual(suggestion, "T-shirt weather!")
+
+    def test_celsius_to_fahrenheit(self):
+        self.assertEqual(celsius_to_fahrenheit(0), 32.0)
+        self.assertEqual(celsius_to_fahrenheit(100), 212.0)
+        self.assertEqual(celsius_to_fahrenheit(-40), -40.0)
 
 if __name__ == '__main__':
     unittest.main()
